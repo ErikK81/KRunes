@@ -1,0 +1,8 @@
+name: KRunes
+version: 1.0
+main: me.erik.kRunes.KRunes
+api-version: 1.21
+commands:
+  Krune:
+    description: Recebe o Giz Rúnico.
+    usage: /KRune
