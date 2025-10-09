@@ -29,14 +29,17 @@ public class Events implements Listener {
         return new NamespacedKey(plugin, "kRunes_chalk");
     }
 
+    private NamespacedKey activatorKey() {
+        return new NamespacedKey(plugin, "activator");
+    }
+
     private NamespacedKey creationStickKey() {
         return new NamespacedKey(plugin, "kRunes_creation_stick");
     }
 
     @EventHandler
     public void onPlayerUseItem(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) return;
-        if (event.getClickedBlock() == null) return;
+        if (event.getHand() != EquipmentSlot.HAND || event.getClickedBlock() == null) return;
 
         Player player = event.getPlayer();
         ItemStack item = player.getInventory().getItemInMainHand();
@@ -46,27 +49,54 @@ public class Events implements Listener {
         Block block = event.getClickedBlock();
         Location loc = block.getLocation().add(0.5, 1, 0.5);
 
-        // Giz Rúnico
-        if (meta.getPersistentDataContainer().has(chalkKey(), PersistentDataType.INTEGER)) {
-            event.setCancelled(true);
-            plugin.getRuneManager().addChalkBlock(player, block);
-            player.getWorld().spawnParticle(Particle.END_ROD, loc, 10, 0.2, 0.2, 0.2, 0.01);
-            player.sendMessage("Bloco marcado com energia rúnica!");
-            return;
+        if (isChalk(meta)) {
+            handleChalk(player, block, loc, event);
+        } else if (isActivator(meta)) {
+            handleActivator(player, loc, event);
+        } else if (isCreationStick(meta)) {
+            handleCreationStick(player, item, block, loc, event);
         }
+    }
 
-        // Cajado de Criação
-        if (meta.getPersistentDataContainer().has(creationStickKey(), PersistentDataType.INTEGER)) {
+    private boolean isChalk(ItemMeta meta) {
+        return meta.getPersistentDataContainer().has(chalkKey(), PersistentDataType.INTEGER);
+    }
 
-            event.setCancelled(true);
-            boolean finished = plugin.getRuneManager().addCreationBlock(player, block);
-            player.getWorld().spawnParticle(Particle.OMINOUS_SPAWNING, loc, 15, 0.2, 0.2, 0.2, 0.01);
+    private boolean isActivator(ItemMeta meta) {
+        return meta.getPersistentDataContainer().has(activatorKey(), PersistentDataType.INTEGER);
+    }
 
-            if (finished) {
-                player.sendMessage("Runa criada com sucesso!");
-                player.getInventory().remove(item);
-                player.getPersistentDataContainer().remove(creationKey());
-            }
+    private boolean isCreationStick(ItemMeta meta) {
+        return meta.getPersistentDataContainer().has(creationStickKey(), PersistentDataType.INTEGER);
+    }
+
+    private void handleChalk(Player player, Block block, Location loc, PlayerInteractEvent event) {
+        event.setCancelled(true);
+        plugin.getRuneManager().addChalkBlock(player, block);
+        spawnParticle(player, loc, Particle.END_ROD, 10);
+        player.sendMessage("Bloco marcado com energia rúnica!");
+    }
+
+    private void handleActivator(Player player, Location loc, PlayerInteractEvent event) {
+        event.setCancelled(true);
+        plugin.getRuneManager().tryActivateRune(player);
+        spawnParticle(player, loc, Particle.SMOKE, 10);
+        player.sendMessage("Runa Ativada!");
+    }
+
+    private void handleCreationStick(Player player, ItemStack item, Block block, Location loc, PlayerInteractEvent event) {
+        event.setCancelled(true);
+        boolean finished = plugin.getRuneManager().addCreationBlock(player, block);
+        spawnParticle(player, loc, Particle.OMINOUS_SPAWNING, 15);
+
+        if (finished) {
+            player.sendMessage("Runa criada com sucesso!");
+            player.getInventory().remove(item);
+            player.getPersistentDataContainer().remove(creationKey());
         }
+    }
+
+    private void spawnParticle(Player player, Location loc, Particle particle, int count) {
+        player.getWorld().spawnParticle(particle, loc, count, 0.2, 0.2, 0.2, 0.01);
     }
 }

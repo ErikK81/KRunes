@@ -24,91 +24,120 @@ public class Commands implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Apenas jogadores podem usar este comando.");
+            sender.sendMessage(ChatColor.RED + "Apenas jogadores podem usar este comando.");
             return true;
         }
 
         if (args.length == 0) {
-            player.sendMessage(ChatColor.RED + "Uso correto: /KRune give chalk ou /KRune create <runa> [comando]");
+            sendUsage(player);
             return true;
         }
 
-        switch (args[0].toLowerCase()) {
-            case "give":
-                if (args.length >= 2 && args[1].equalsIgnoreCase("chalk")) {
-                    giveChalk(player);
-                } else {
-                    player.sendMessage(ChatColor.RED + "Uso correto: /KRune give chalk");
-                }
-                break;
+        String subCommand = args[0].toLowerCase();
 
-            case "create":
-                if (args.length >= 2) {
-                    String runeName = args[1];
-                    String command = "";
-
-                    if (args.length > 2) {
-                        // junta todos os argumentos depois do nome da runa em um comando
-                        StringBuilder sb = new StringBuilder();
-                        for (int i = 2; i < args.length; i++) {
-                            sb.append(args[i]).append(" ");
-                        }
-                        command = sb.toString().trim();
-                    }
-
-                    // inicia criação da runa
-                    plugin.getRuneManager().startRuneCreation(player, runeName);
-                    plugin.getRuneManager().setRuneCommand(runeName, command);
-                    giveCreationStick(player, runeName, command);
-
-                } else {
-                    player.sendMessage(ChatColor.RED + "Uso correto: /KRune create <nome_da_runa> [comando]");
-                }
-                break;
-
-            default:
-                player.sendMessage(ChatColor.RED + "Comando desconhecido. Use /KRune give chalk ou /KRune create <runa> [comando]");
-                break;
+        switch (subCommand) {
+            case "give" -> handleGiveCommand(player, args);
+            case "create" -> handleCreateCommand(player, args);
+            default -> sendUsage(player);
         }
 
         return true;
     }
 
+    private void handleGiveCommand(Player player, String[] args) {
+        if (args.length < 2) {
+            player.sendMessage(ChatColor.RED + "Uso correto: /KRune give <chalk|activator>");
+            return;
+        }
+
+        String itemType = args[1].toLowerCase();
+        switch (itemType) {
+            case "chalk" -> giveChalk(player);
+            case "activator" -> giveActivator(player);
+            default -> player.sendMessage(ChatColor.RED + "Item desconhecido. Use: chalk ou activator.");
+        }
+    }
+
+    private void handleCreateCommand(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage(ChatColor.RED + "Uso correto: /KRune create <nome_da_runa> <quantidade> [comando]");
+            return;
+        }
+
+        String runeName = args[1];
+        int runeBlocks;
+
+        try {
+            runeBlocks = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(ChatColor.RED + "A quantidade de blocos deve ser um número inteiro.");
+            return;
+        }
+
+        String command = (args.length > 3)
+                ? String.join(" ", List.of(args).subList(3, args.length))
+                : "";
+
+        plugin.getRuneManager().startRuneCreation(player, runeName, runeBlocks, command);
+        plugin.getRuneManager().setRuneCommand(runeName, command);
+        giveCreationStick(player, runeName, command);
+    }
+
     private void giveCreationStick(Player player, String runeName, String command) {
         ItemStack stick = new ItemStack(Material.STICK);
         ItemMeta meta = stick.getItemMeta();
-        assert meta != null;
+        if (meta == null) return;
 
         meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Cajado de Criação");
         meta.setLore(List.of(
                 ChatColor.GRAY + "Use para desenhar a runa: " + runeName,
-                ChatColor.GRAY + "Máximo de 9 blocos.",
+                ChatColor.GRAY + "Sem limite de blocos.",
                 ChatColor.GRAY + (command.isEmpty() ? "Sem comando definido." : "Comando: " + command)
         ));
 
-        NamespacedKey creationStickKey = new NamespacedKey(plugin, "kRunes_creation_stick");
-        meta.getPersistentDataContainer().set(creationStickKey, PersistentDataType.INTEGER, 1);
+        NamespacedKey key = new NamespacedKey(plugin, "kRunes_creation_stick");
+        meta.getPersistentDataContainer().set(key, PersistentDataType.INTEGER, 1);
 
         stick.setItemMeta(meta);
-
         player.getInventory().addItem(stick);
         player.sendMessage(ChatColor.GREEN + "Modo de criação iniciado para a runa: " + ChatColor.YELLOW + runeName);
     }
 
     private void giveChalk(Player player) {
-        ItemStack giz = new ItemStack(Material.STICK);
-        ItemMeta meta = giz.getItemMeta();
-        assert meta != null;
+        ItemStack chalk = new ItemStack(Material.STICK);
+        ItemMeta meta = chalk.getItemMeta();
+        if (meta == null) return;
+
         meta.setDisplayName(ChatColor.AQUA + "Giz Rúnico");
         meta.setLore(List.of(ChatColor.GRAY + "Use para desenhar runas no chão."));
 
         NamespacedKey key = new NamespacedKey(plugin, "kRunes_chalk");
         meta.getPersistentDataContainer().set(key, PersistentDataType.INTEGER, 1);
 
-        giz.setItemMeta(meta);
-        player.getInventory().addItem(giz);
+        chalk.setItemMeta(meta);
+        player.getInventory().addItem(chalk);
         player.sendMessage(ChatColor.GREEN + "Você recebeu o Giz Rúnico!");
     }
 
+    private void giveActivator(Player player) {
+        ItemStack activator = new ItemStack(Material.BLAZE_ROD);
+        ItemMeta meta = activator.getItemMeta();
+        if (meta == null) return;
 
+        meta.setDisplayName(ChatColor.GOLD + "Ativador Rúnico");
+        meta.setLore(List.of(ChatColor.GRAY + "Use para ativar runas no chão."));
+
+        NamespacedKey key = new NamespacedKey(plugin, "kRunes_activator");
+        meta.getPersistentDataContainer().set(key, PersistentDataType.INTEGER, 1);
+
+        activator.setItemMeta(meta);
+        player.getInventory().addItem(activator);
+        player.sendMessage(ChatColor.GREEN + "Você recebeu o Ativador Rúnico!");
+    }
+
+    private void sendUsage(Player player) {
+        player.sendMessage(ChatColor.YELLOW + "Uso correto:");
+        player.sendMessage(ChatColor.GRAY + "/KRune give <chalk|activator>");
+        player.sendMessage(ChatColor.GRAY + "/KRune create <nome_da_runa> <quantidade> [comando]");
+    }
 }
