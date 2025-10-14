@@ -1,5 +1,6 @@
 package me.erik.kRunes;
 
+import me.erik.kRunes.Manager.RuneManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -11,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Commands implements CommandExecutor {
@@ -52,8 +54,8 @@ public class Commands implements CommandExecutor {
 
         String itemType = args[1].toLowerCase();
         switch (itemType) {
-            case "chalk" -> giveChalk(player);
-            case "activator" -> giveActivator(player);
+            case "chalk" -> giveItem(player, "itens.chalk", "kRunes_chalk");
+            case "activator" -> giveItem(player, "itens.activator", "kRunes_activator");
             default -> player.sendMessage(ChatColor.RED + "Item desconhecido. Use: chalk ou activator.");
         }
     }
@@ -80,59 +82,53 @@ public class Commands implements CommandExecutor {
 
         plugin.getRuneManager().startRuneCreation(player, runeName, runeBlocks, command);
         plugin.getRuneManager().setRuneCommand(runeName, command);
+
         giveCreationStick(player, runeName, command);
     }
 
     private void giveCreationStick(Player player, String runeName, String command) {
-        ItemStack stick = new ItemStack(Material.STICK);
-        ItemMeta meta = stick.getItemMeta();
-        if (meta == null) return;
-
-        meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Cajado de Criação");
-        meta.setLore(List.of(
-                ChatColor.GRAY + "Use para desenhar a runa: " + runeName,
-                ChatColor.GRAY + "Sem limite de blocos.",
-                ChatColor.GRAY + (command.isEmpty() ? "Sem comando definido." : "Comando: " + command)
-        ));
-
-        NamespacedKey key = new NamespacedKey(plugin, "kRunes_creation_stick");
-        meta.getPersistentDataContainer().set(key, PersistentDataType.INTEGER, 1);
-
-        stick.setItemMeta(meta);
-        player.getInventory().addItem(stick);
-        player.sendMessage(ChatColor.GREEN + "Modo de criação iniciado para a runa: " + ChatColor.YELLOW + runeName);
+        giveItem(player, "itens.creation", "kRunes_creation_stick", runeName, command);
     }
 
-    private void giveChalk(Player player) {
-        ItemStack chalk = new ItemStack(Material.STICK);
-        ItemMeta meta = chalk.getItemMeta();
-        if (meta == null) return;
-
-        meta.setDisplayName(ChatColor.AQUA + "Giz Rúnico");
-        meta.setLore(List.of(ChatColor.GRAY + "Use para desenhar runas no chão."));
-
-        NamespacedKey key = new NamespacedKey(plugin, "kRunes_chalk");
-        meta.getPersistentDataContainer().set(key, PersistentDataType.INTEGER, 1);
-
-        chalk.setItemMeta(meta);
-        player.getInventory().addItem(chalk);
-        player.sendMessage(ChatColor.GREEN + "Você recebeu o Giz Rúnico!");
+    private void giveItem(Player player, String configPath, String keyName) {
+        giveItem(player, configPath, keyName, null, null);
     }
 
-    private void giveActivator(Player player) {
-        ItemStack activator = new ItemStack(Material.BLAZE_ROD);
-        ItemMeta meta = activator.getItemMeta();
+    private void giveItem(Player player, String configPath, String keyName, String runeName, String command) {
+        Material material = Material.valueOf(plugin.getConfig().getString(configPath + ".material"));
+        ItemStack item = new ItemStack(material);
+
+        ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
 
-        meta.setDisplayName(ChatColor.GOLD + "Ativador Rúnico");
-        meta.setLore(List.of(ChatColor.GRAY + "Use para ativar runas no chão."));
+        // Nome
+        String name = plugin.getConfig().getString(configPath + ".name");
+        if (name != null) {
+            if (runeName != null) name = name.replace("%rune%", runeName);
+            if (command != null) name = name.replace("%command%", command);
+            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+        }
 
-        NamespacedKey key = new NamespacedKey(plugin, "kRunes_activator");
-        meta.getPersistentDataContainer().set(key, PersistentDataType.INTEGER, 1);
+        // Lore
+        List<String> lore = new ArrayList<>();
+        List<String> configLore = plugin.getConfig().getStringList(configPath + ".lore");
+        for (String line : configLore) {
+            if (runeName != null) line = line.replace("%rune%", runeName);
+            if (command != null) line = line.replace("%command%", command.isEmpty() ? "Nenhum" : command);
+            lore.add(ChatColor.translateAlternateColorCodes('&', line));
+        }
+        meta.setLore(lore);
 
-        activator.setItemMeta(meta);
-        player.getInventory().addItem(activator);
-        player.sendMessage(ChatColor.GREEN + "Você recebeu o Ativador Rúnico!");
+        // Custom model data
+        if (plugin.getConfig().contains(configPath + ".custommodeldata")) {
+            meta.setCustomModelData(plugin.getConfig().getInt(configPath + ".custommodeldata"));
+        }
+
+        // Persistent data (opcional)
+        meta.getPersistentDataContainer().set(new NamespacedKey(plugin, keyName), PersistentDataType.INTEGER, 1);
+
+        item.setItemMeta(meta);
+        player.getInventory().addItem(item);
     }
 
     private void sendUsage(Player player) {

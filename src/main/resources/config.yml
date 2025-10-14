@@ -1,0 +1,50 @@
+# Configurações de partículas e sons padrão das runas
+default-particles:
+  draw:
+    type: REVERSE_PORTAL
+    amount: 5
+    force: 0.01   # velocidade da partícula
+  activate:
+    type: TOTEM_OF_UNDYING
+    amount: 100
+    force: 0.5
+  fail:
+    type: SMOKE_NORMAL
+    amount: 100
+    force: 1.0
+
+default-sounds:
+  draw:
+    sound: BLOCK_AMETHYST_BLOCK_STEP
+    pitch: 1.0
+    volume: 1.0
+  activate:
+    sound: ENTITY_PLAYER_LEVELUP
+    pitch: 1.2
+    volume: 1.0
+  fail:
+    sound: ENTITY_GENERIC_EXPLODE
+    pitch: 1.5
+    volume: 3.0
+
+itens:
+  creation:
+    name: "&dCajado de Criação"
+    material: STICK
+    custommodeldata: 1001
+    lore:
+      - "&7Use para desenhar a runa: %rune%"
+      - "&7Máximo de 9 blocos."
+      - "&7Comando: %command%"
+  chalk:
+    name: "&bGiz Rúnico"
+    material: STICK
+    custommodeldata: 1002
+    lore:
+      - "&7Use para desenhar runas no chão."
+  activator:
+    name: "&bAtivador Rúnico"
+    material: BLAZE_ROD
+    custommodeldata: 1003
+    lore:
+      - "&7Use para ativar runas no chão."
