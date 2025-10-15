@@ -105,6 +105,7 @@ public class DataManager {
         }
     }
 
+
     // --- Classes internas ---
     public static class RuneData {
         public List<int[]> positions;

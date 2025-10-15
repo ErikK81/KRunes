@@ -73,7 +73,6 @@ public class Events implements Listener {
     private void handleChalk(Player player, Block block, Location loc, PlayerInteractEvent event) {
         event.setCancelled(true);
         plugin.getRuneManager().addChalkBlock(player, block);
-        spawnParticle(player, loc, Particle.END_ROD, 10);
         player.sendMessage("Bloco marcado com energia rúnica!");
     }
 
@@ -87,7 +86,7 @@ public class Events implements Listener {
     private void handleCreationStick(Player player, ItemStack item, Block block, Location loc, PlayerInteractEvent event) {
         event.setCancelled(true);
         boolean finished = plugin.getRuneManager().addCreationBlock(player, block);
-        spawnParticle(player, loc, Particle.OMINOUS_SPAWNING, 15);
+        spawnParticle(player, loc, Particle.OMINOUS_SPAWNING, 5);
 
         if (finished) {
             player.sendMessage("Runa criada com sucesso!");

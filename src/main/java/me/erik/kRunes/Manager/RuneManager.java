@@ -76,6 +76,7 @@ public class RuneManager {
         drawing.blocks.add(block);
         player.sendMessage(PlaceHolders.replace("&ePonto adicionado (" + drawing.blocks.size() + ").", player, null, null));
         effectsManager.playSound(player, "draw", block.getLocation());
+        effectsManager.spawnParticle("draw", block.getLocation());
 
         // Desenha linha persistente
         if (drawing.blocks.size() > 1) {
@@ -110,18 +111,21 @@ public class RuneManager {
 
         if (matchedRunes.isEmpty()) {
             effectsManager.playSound(player, "fail", drawnBlocks.getFirst().getLocation());
+            effectsManager.spawnParticle("fail", drawnBlocks.getFirst().getLocation());
             player.sendMessage(PlaceHolders.replace("&cRuna incorreta! Pontos resetados.", player, drawnBlocks.getFirst().getLocation(), drawnBlocks.getLast().getLocation()));
         } else {
             for (String runeName : matchedRunes) {
                 DataManager.RuneData data = dataManager.getSavedRunes().get(runeName);
-                effectsManager.playSound(player, "activate", drawnBlocks.getFirst().getLocation());
 
                 Location start = drawnBlocks.getFirst().getLocation();
                 Location end = drawnBlocks.getLast().getLocation();
 
+
                 player.sendMessage(PlaceHolders.replace("&6Runa '" + runeName + "' ativada!", player, start, end));
 
                 if (data.command != null && !data.command.isEmpty()) {
+                    effectsManager.spawnParticle("activate", end);
+                    effectsManager.playSound(player, "activate", end);
                     String finalCommand = PlaceHolders.replace(data.command, player, start, end);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
                 }

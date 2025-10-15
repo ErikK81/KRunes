@@ -64,18 +64,29 @@ public class EffectsManager {
         ));
     }
 
-    // --- Spawn de partículas ---
-    public void playParticle(Player player, String type, Location loc) {
-        ParticleData data = particleMap.get(type);
-        if (data == null) return;
-        player.getWorld().spawnParticle(data.particle, loc, data.amount, data.force, data.force, data.force, data.force);
-    }
-
     // --- Spawn de sons ---
     public void playSound(Player player, String type, Location loc) {
         SoundData data = soundMap.get(type);
         if (data == null) return;
         player.getWorld().playSound(loc, data.sound, data.volume, data.pitch);
+    }
+
+    public void spawnParticle(String type, Location loc) {
+        ParticleData data = particleMap.get(type);
+        if (data == null) return;
+
+        // Centraliza no meio do bloco
+        double x = loc.getX() + 0.5;
+        double y = loc.getY() + 0.5;
+        double z = loc.getZ() + 0.5;
+
+        Objects.requireNonNull(loc.getWorld()).spawnParticle(
+                data.particle,
+                x, y, z,
+                data.amount,
+                data.force, data.force, data.force,
+                data.force
+        );
     }
 
     // --- Adicionar linha persistente ---
@@ -117,7 +128,7 @@ public class EffectsManager {
         for (int i = 0; i <= points; i++) {
             double t = i / (double) points;
             double x = start.getX() + (end.getX() - start.getX()) * t + 0.5;
-            double y = start.getY() + (end.getY() - start.getY()) * t + 0.5;
+            double y = start.getY() + (end.getY() - start.getY()) * t + 1;
             double z = start.getZ() + (end.getZ() - start.getZ()) * t + 0.5;
             player.getWorld().spawnParticle(data.particle, x, y, z, data.amount, data.force, data.force, data.force, data.force);
         }
