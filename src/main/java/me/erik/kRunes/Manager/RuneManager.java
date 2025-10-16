@@ -13,149 +13,171 @@ import java.util.*;
 public class RuneManager {
 
     private final DataManager dataManager;
-    private final EffectsManager effectsManager;
+    private final EffectsManager effects;
+    private final MessageManager messages;
+    private final Map<UUID, PlayerDrawingData> drawings = new HashMap<>();
 
-    private final Map<UUID, PlayerDrawingData> playerDrawings = new HashMap<>();
-
-    public RuneManager(KRunes plugin, DataManager dataManager, EffectsManager effectsManager) {
+    public RuneManager(KRunes plugin, DataManager dataManager, EffectsManager effects) {
         this.dataManager = dataManager;
-        this.effectsManager = effectsManager;
+        this.effects = effects;
+        this.messages = plugin.getMessageManager();
     }
 
-    // --- Criação de runas ---
+    /* ==========================================================
+     *                      RUNE CREATION
+     * ========================================================== */
     public void startRuneCreation(Player player, String runeName, int blockCount, String command) {
-        DataManager.PlayerCreationData creation = new DataManager.PlayerCreationData(runeName, blockCount, command);
-        dataManager.getPlayerCreations().computeIfAbsent(player.getUniqueId(), k -> new ArrayList<>()).add(creation);
+        var creation = new DataManager.PlayerCreationData(runeName, blockCount, command);
+        dataManager.getPlayerCreations()
+                .computeIfAbsent(player.getUniqueId(), k -> new ArrayList<>())
+                .add(creation);
 
-        player.sendMessage(PlaceHolders.replace("&aModo criação iniciado para a runa: &e" + runeName, player, null, null));
-        player.sendMessage(PlaceHolders.replace("&bBlocos necessários: &e" + blockCount, player, null, null));
-        player.sendMessage(PlaceHolders.replace("&7Comando: &f" + command, player, null, null));
+        player.sendMessage(messages.get("general", "prefix") + messages.get("rune", "start"));
+        player.sendMessage(PlaceHolders.replace("&bBlocks required: &e" + blockCount, player, null, null));
+        player.sendMessage(PlaceHolders.replace("&7Command: &f" + (command.isEmpty() ? "None" : command), player, null, null));
     }
 
     public boolean addCreationBlock(Player player, Block block) {
-        DataManager.PlayerCreationData current = getCurrentCreation(player);
-        if (current == null) return false;
+        var creation = getCurrentCreation(player);
+        if (creation == null) return false;
 
-        if (current.blocks.contains(block)) {
-            player.sendMessage(ChatColor.GRAY + "Este bloco já foi marcado.");
-            return false;
+        if (creation.blocks.contains(block)) return false;
+
+        creation.blocks.add(block);
+        effects.playSound(player, "draw", block.getLocation());
+
+        // Draw connecting line if there's a previous block
+        if (creation.blocks.size() > 1) {
+            Block previous = creation.blocks.get(creation.blocks.size() - 2);
+            effects.addLine(player, previous.getLocation(), block.getLocation());
         }
 
-        // Adiciona o bloco à runa
-        current.blocks.add(block);
-        player.sendMessage(PlaceHolders.replace("&eBloco adicionado (" + current.blocks.size() + "/" + current.requiredBlocks + ").", player, null, null));
-        effectsManager.playSound(player, "draw", block.getLocation());
-
-        // Se houver bloco anterior, adiciona linha persistente
-        if (current.blocks.size() > 1) {
-            Block lastBlock = current.blocks.get(current.blocks.size() - 2);
-            effectsManager.addLine(player, lastBlock.getLocation(), block.getLocation());
-        }
-
-        // Finaliza criação
-        if (current.blocks.size() >= current.requiredBlocks) {
-            dataManager.saveRuneFromCreation(player, current);
-            dataManager.removeCurrentCreation(player, current);
+        // If rune complete
+        if (creation.blocks.size() >= creation.requiredBlocks) {
+            dataManager.saveRuneFromCreation(player, creation);
+            dataManager.removeCurrentCreation(player, creation);
             return true;
         }
+
         return false;
     }
 
     private DataManager.PlayerCreationData getCurrentCreation(Player player) {
-        List<DataManager.PlayerCreationData> creations = dataManager.getPlayerCreations().get(player.getUniqueId());
+        var creations = dataManager.getPlayerCreations().get(player.getUniqueId());
         if (creations == null || creations.isEmpty()) {
-            player.sendMessage(ChatColor.RED + "Você não está criando nenhuma runa.");
+            player.sendMessage(messages.get("general", "prefix") + messages.get("errors", "invalid_rune"));
             return null;
         }
         return creations.getLast();
     }
 
-    // --- Giz rúnico ---
+    /* ==========================================================
+     *                      CHALK DRAWING
+     * ========================================================== */
     public void addChalkBlock(Player player, Block block) {
-        PlayerDrawingData drawing = playerDrawings.computeIfAbsent(player.getUniqueId(), k -> new PlayerDrawingData());
+        var drawing = drawings.computeIfAbsent(player.getUniqueId(), k -> new PlayerDrawingData());
         drawing.blocks.add(block);
-        player.sendMessage(PlaceHolders.replace("&ePonto adicionado (" + drawing.blocks.size() + ").", player, null, null));
-        effectsManager.playSound(player, "draw", block.getLocation());
-        effectsManager.spawnParticle("draw", block.getLocation());
 
-        // Desenha linha persistente
+        effects.playSound(player, "draw", block.getLocation());
+        effects.spawnParticle("draw", block.getLocation());
+
         if (drawing.blocks.size() > 1) {
-            Block lastBlock = drawing.blocks.get(drawing.blocks.size() - 2);
-            effectsManager.addLine(player, lastBlock.getLocation(), block.getLocation());
+            Block previous = drawing.blocks.get(drawing.blocks.size() - 2);
+            effects.addLine(player, previous.getLocation(), block.getLocation());
         }
     }
 
-    // --- Ativação de runa ---
+    /* ==========================================================
+     *                      RUNE ACTIVATION
+     * ========================================================== */
     public void tryActivateRune(Player player) {
-        PlayerDrawingData drawing = playerDrawings.get(player.getUniqueId());
+        var drawing = drawings.get(player.getUniqueId());
+
         if (drawing == null || drawing.blocks.isEmpty()) {
-            player.sendMessage(ChatColor.RED + "Você ainda não desenhou uma runa.");
+            player.sendMessage(messages.get("general", "prefix") + messages.get("errors", "not_active"));
             return;
         }
 
-        checkRuneActivation(player, drawing.blocks);
+        evaluateActivation(player, drawing.blocks);
+
         drawing.blocks.clear();
-        effectsManager.clearLines(player); // remove linhas persistentes após ativação
+        effects.clearLines(player);
     }
 
-    private void checkRuneActivation(Player player, List<Block> drawnBlocks) {
-        List<String> matchedRunes = new ArrayList<>();
-
-        for (Map.Entry<String, DataManager.RuneData> entry : dataManager.getSavedRunes().entrySet()) {
-            String runeName = entry.getKey();
-            DataManager.RuneData data = entry.getValue();
-
-            if (drawnBlocks.size() != data.positions.size()) continue;
-            if (matchesRune(drawnBlocks, data.positions)) matchedRunes.add(runeName);
-        }
+    private void evaluateActivation(Player player, List<Block> drawnBlocks) {
+        List<String> matchedRunes = findMatchingRunes(drawnBlocks);
 
         if (matchedRunes.isEmpty()) {
-            effectsManager.playSound(player, "fail", drawnBlocks.getFirst().getLocation());
-            effectsManager.spawnParticle("fail", drawnBlocks.getFirst().getLocation());
-            player.sendMessage(PlaceHolders.replace("&cRuna incorreta! Pontos resetados.", player, drawnBlocks.getFirst().getLocation(), drawnBlocks.getLast().getLocation()));
-        } else {
-            for (String runeName : matchedRunes) {
-                DataManager.RuneData data = dataManager.getSavedRunes().get(runeName);
+            Location loc = drawnBlocks.getFirst().getLocation();
+            effects.playSound(player, "fail", loc);
+            effects.spawnParticle("fail", loc);
+            player.sendMessage(PlaceHolders.replace("&cIncorrect rune! Points reset.", player,
+                    loc, drawnBlocks.getLast().getLocation()));
+            return;
+        }
 
-                Location start = drawnBlocks.getFirst().getLocation();
-                Location end = drawnBlocks.getLast().getLocation();
+        // Run all matching runes
+        for (String runeName : matchedRunes) {
+            DataManager.RuneData data = dataManager.getSavedRunes().get(runeName);
+            Location start = drawnBlocks.getFirst().getLocation();
+            Location end = drawnBlocks.getLast().getLocation();
 
+            player.sendMessage(messages.get("general", "prefix") + messages.get("rune", "success"));
 
-                player.sendMessage(PlaceHolders.replace("&6Runa '" + runeName + "' ativada!", player, start, end));
+            if (data.command != null && !data.command.isEmpty()) {
+                effects.spawnParticle("activate", end);
+                effects.playSound(player, "activate", end);
 
-                if (data.command != null && !data.command.isEmpty()) {
-                    effectsManager.spawnParticle("activate", end);
-                    effectsManager.playSound(player, "activate", end);
-                    String finalCommand = PlaceHolders.replace(data.command, player, start, end);
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
-                }
+                String parsedCommand = PlaceHolders.replace(data.command, player, start, end);
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsedCommand);
             }
         }
     }
 
+    private List<String> findMatchingRunes(List<Block> drawnBlocks) {
+        List<String> matches = new ArrayList<>();
+
+        for (var entry : dataManager.getSavedRunes().entrySet()) {
+            String name = entry.getKey();
+            DataManager.RuneData rune = entry.getValue();
+
+            if (drawnBlocks.size() == rune.positions.size() && matchesRune(drawnBlocks, rune.positions)) {
+                matches.add(name);
+            }
+        }
+        return matches;
+    }
+
     private boolean matchesRune(List<Block> drawn, List<int[]> positions) {
         Block origin = drawn.getFirst();
+
         for (int i = 0; i < drawn.size(); i++) {
             int dx = drawn.get(i).getX() - origin.getX();
             int dy = drawn.get(i).getY() - origin.getY();
             int dz = drawn.get(i).getZ() - origin.getZ();
+
             int[] expected = positions.get(i);
-            if (dx != expected[0] || dy != expected[1] || dz != expected[2]) return false;
+            if (dx != expected[0] || dy != expected[1] || dz != expected[2])
+                return false;
         }
         return true;
     }
 
-    // --- Comando associado ---
+    /* ==========================================================
+     *                      RUNE COMMANDS
+     * ========================================================== */
     public void setRuneCommand(String runeName, String command) {
-        DataManager.RuneData data = dataManager.getSavedRunes().get(runeName);
-        if (data != null) {
-            data.command = command;
-            dataManager.saveRune(runeName, data);
-        }
+        var rune = dataManager.getSavedRunes().get(runeName);
+        if (rune == null) return;
+
+        rune.command = command;
+        dataManager.saveRune(runeName, rune);
     }
 
-    // --- Classes internas ---
+    /* ==========================================================
+     *                      INTERNAL CLASS
+     * ========================================================== */
     public static class PlayerDrawingData {
-        List<Block> blocks = new ArrayList<>();
+        public final List<Block> blocks = new ArrayList<>();
     }
 }

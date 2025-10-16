@@ -1,6 +1,7 @@
 package me.erik.kRunes;
 
 import me.erik.kRunes.Manager.DataManager;
+import me.erik.kRunes.Manager.MessageManager;
 import me.erik.kRunes.Manager.RuneManager;
 import me.erik.kRunes.Manager.EffectsManager;
 import org.bukkit.Bukkit;
@@ -10,20 +11,19 @@ import java.util.Objects;
 
 public class KRunes extends JavaPlugin {
 
-    private DataManager dataManager;
-    private EffectsManager effectsManager;
     private RuneManager runeManager;
+    private MessageManager messageManager;
 
     @Override
     public void onEnable() {
         // Cria a pasta do plugin, caso não exista
         saveDefaultConfig();
-
+        messageManager = new MessageManager(this);
         // Inicializa DataManager
-        dataManager = new DataManager(getDataFolder());
+        DataManager dataManager = new DataManager(getDataFolder());
 
         // Inicializa EffectsManager (passando o plugin e o config.yml)
-        effectsManager = new EffectsManager(this);
+        EffectsManager effectsManager = new EffectsManager(this);
 
         // Inicializa RuneManager (passando DataManager e EffectsManager)
         runeManager = new RuneManager(this, dataManager, effectsManager);
@@ -38,16 +38,9 @@ public class KRunes extends JavaPlugin {
     public void onDisable() {
         getLogger().info("KRunes desativado.");
     }
-
-    // --- Getters ---
-    public DataManager getDataManager() {
-        return dataManager;
+    public MessageManager getMessageManager() {
+        return messageManager;
     }
-
-    public EffectsManager getEffectsManager() {
-        return effectsManager;
-    }
-
     public RuneManager getRuneManager() {
         return runeManager;
     }

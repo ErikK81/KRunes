@@ -64,8 +64,8 @@ public class DataManager {
         RuneData runeData = new RuneData(relativePositions, creation.command);
         saveRune(creation.runeName, runeData);
 
-        player.sendMessage(ChatColor.GREEN + "Runa '" + creation.runeName + "' criada e salva com sucesso!");
-        player.sendMessage(ChatColor.GRAY + "Comando: " + ChatColor.WHITE + creation.command);
+        player.sendMessage(ChatColor.GREEN + "Rune '" + creation.runeName + "' created!");
+        player.sendMessage(ChatColor.GRAY + "Command: " + ChatColor.WHITE + creation.command);
     }
 
     // --- Getters ---

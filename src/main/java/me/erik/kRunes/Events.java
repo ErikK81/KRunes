@@ -1,5 +1,6 @@
 package me.erik.kRunes;
 
+import me.erik.kRunes.Manager.MessageManager;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
@@ -13,12 +14,21 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class Events implements Listener {
 
     private final KRunes plugin;
+    private final MessageManager messages;
+    private final Map<UUID, Long> cooldowns = new HashMap<>();
+
+    private static final long COOLDOWN_MS = 250; // 0.5s
 
     public Events(KRunes plugin) {
         this.plugin = plugin;
+        this.messages = plugin.getMessageManager();
     }
 
     private NamespacedKey creationKey() {
@@ -42,6 +52,14 @@ public class Events implements Listener {
         if (event.getHand() != EquipmentSlot.HAND || event.getClickedBlock() == null) return;
 
         Player player = event.getPlayer();
+
+        // Cooldown de 0.5s
+        if (isOnCooldown(player)) {
+            event.setCancelled(true);
+            return;
+        }
+        updateCooldown(player);
+
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item == null || item.getItemMeta() == null) return;
 
@@ -50,12 +68,21 @@ public class Events implements Listener {
         Location loc = block.getLocation().add(0.5, 1, 0.5);
 
         if (isChalk(meta)) {
-            handleChalk(player, block, loc, event);
+            handleChalk(player, block, event);
         } else if (isActivator(meta)) {
             handleActivator(player, loc, event);
         } else if (isCreationStick(meta)) {
             handleCreationStick(player, item, block, loc, event);
         }
+    }
+
+    private boolean isOnCooldown(Player player) {
+        Long last = cooldowns.get(player.getUniqueId());
+        return last != null && (System.currentTimeMillis() - last) < COOLDOWN_MS;
+    }
+
+    private void updateCooldown(Player player) {
+        cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
     }
 
     private boolean isChalk(ItemMeta meta) {
@@ -70,17 +97,16 @@ public class Events implements Listener {
         return meta.getPersistentDataContainer().has(creationStickKey(), PersistentDataType.INTEGER);
     }
 
-    private void handleChalk(Player player, Block block, Location loc, PlayerInteractEvent event) {
+    private void handleChalk(Player player, Block block, PlayerInteractEvent event) {
         event.setCancelled(true);
         plugin.getRuneManager().addChalkBlock(player, block);
-        player.sendMessage("Bloco marcado com energia rúnica!");
     }
 
     private void handleActivator(Player player, Location loc, PlayerInteractEvent event) {
         event.setCancelled(true);
         plugin.getRuneManager().tryActivateRune(player);
         spawnParticle(player, loc, Particle.SMOKE, 10);
-        player.sendMessage("Runa Ativada!");
+        player.sendMessage(messages.get("general", "prefix") + messages.get("rune", "success"));
     }
 
     private void handleCreationStick(Player player, ItemStack item, Block block, Location loc, PlayerInteractEvent event) {
@@ -89,7 +115,7 @@ public class Events implements Listener {
         spawnParticle(player, loc, Particle.OMINOUS_SPAWNING, 5);
 
         if (finished) {
-            player.sendMessage("Runa criada com sucesso!");
+            player.sendMessage(messages.get("general", "prefix") + messages.get("rune", "complete"));
             player.getInventory().remove(item);
             player.getPersistentDataContainer().remove(creationKey());
         }
