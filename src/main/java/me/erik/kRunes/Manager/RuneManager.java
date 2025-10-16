@@ -111,8 +111,7 @@ public class RuneManager {
             Location loc = drawnBlocks.getFirst().getLocation();
             effects.playSound(player, "fail", loc);
             effects.spawnParticle("fail", loc);
-            player.sendMessage(PlaceHolders.replace("&cIncorrect rune! Points reset.", player,
-                    loc, drawnBlocks.getLast().getLocation()));
+            player.sendMessage(messages.get("general", "prefix") + messages.get("errors", "not_active"));
             return;
         }
 

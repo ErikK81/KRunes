@@ -106,7 +106,6 @@ public class Events implements Listener {
         event.setCancelled(true);
         plugin.getRuneManager().tryActivateRune(player);
         spawnParticle(player, loc, Particle.SMOKE, 10);
-        player.sendMessage(messages.get("general", "prefix") + messages.get("rune", "success"));
     }
 
     private void handleCreationStick(Player player, ItemStack item, Block block, Location loc, PlayerInteractEvent event) {

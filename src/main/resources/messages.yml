@@ -2,24 +2,21 @@
 
 general:
   prefix: "&7[&bKRunes&7] "
-  player_only: "&cApenas jogadores podem usar este comando!"
-  no_permission: "&cVocê não tem permissão para isso!"
-  reload_success: "&aConfigurações e mensagens recarregadas com sucesso!"
-  unknown_command: "&cComando desconhecido. Use /krunes help"
+  player_only: "&cOnly players can use this command!"
+  no_permission: "&cYou dont have permission to do this!"
+  reload_success: "&aReloaded!"
+  unknown_command: "&cUnknow command. Use /krunes help"
 
 errors:
-  invalid_rune: "&cEssa runa não existe!"
-  already_active: "&cEssa runa já está ativa!"
-  not_active: "&cEssa runa não está ativa!"
-  missing_argument: "&cArgumentos insuficientes. Use &e/krunes help"
-  player_not_found: "&cJogador não encontrado!"
+  invalid_rune: "&cThis rune doesn't exists!"
+  not_active: "&cThis rune is incomplete!"
+  missing_argument: "&cAInsuficient arguments. Use &e/krunes help"
 
 rune:
-  start: "&aA runa foi iniciada!"
-  success: "&aVocê ativou a runa &e%rune_name% &acom sucesso!"
-  fail: "&cA runa falhou... tente novamente!"
-  complete: "&aA runa &e%rune_name% &afoi concluída!"
-  interrupted: "&cA runa foi interrompida!"
+  start: "&aRune has started!"
+  success: "&aYou activated the Rune!"
+  fail: "&cThe rune failed!"
+  complete: "&aThe rune has been complete!"
 
 command:
   give_fail: "&aThis item does not exist!"
