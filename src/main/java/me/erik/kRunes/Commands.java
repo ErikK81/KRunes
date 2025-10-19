@@ -1,5 +1,6 @@
 package me.erik.kRunes;
 
+import me.erik.kRunes.Manager.DataManager;
 import me.erik.kRunes.Manager.MessageManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -19,10 +20,12 @@ public class Commands implements CommandExecutor {
 
     private final KRunes plugin;
     private final MessageManager messages;
+    private final DataManager dataManager;
 
-    public Commands(KRunes plugin) {
+    public Commands(KRunes plugin, DataManager dataManager) {
         this.plugin = plugin;
         this.messages = plugin.getMessageManager();
+        this.dataManager = dataManager;
     }
 
     @Override
@@ -46,6 +49,7 @@ public class Commands implements CommandExecutor {
         switch (subCommand) {
             case "give" -> handleGiveCommand(player, args);
             case "create" -> handleCreateCommand(player, args);
+            case "delete" -> handleDeleteCommand(player, args);
             default -> sendUsage(player);
         }
 
@@ -97,6 +101,25 @@ public class Commands implements CommandExecutor {
         plugin.getRuneManager().startRuneCreation(player, runeName, runeBlocks, command);
         plugin.getRuneManager().setRuneCommand(runeName, command);
         giveCreationStick(player, runeName, command);
+    }
+
+    /* -----------------------------------------
+     * Command: /krune delete <name>
+     * ----------------------------------------- */
+    private void handleDeleteCommand(Player player, String[] args) {
+        if (args.length < 2) {
+            player.sendMessage(color("&cUso correto: /krune delete <rune_name>"));
+            return;
+        }
+
+        String runeName = args[1];
+        boolean success = dataManager.deleteRune(runeName);
+
+        if (success) {
+            player.sendMessage(color(ChatColor.RED + "Rune '" + runeName + "' deletada com sucesso!"));
+        } else {
+            player.sendMessage(color(ChatColor.GRAY + "Runa '" + runeName + "' não encontrada ou falha ao deletar."));
+        }
     }
 
     private void giveCreationStick(Player player, String runeName, String command) {
@@ -157,9 +180,10 @@ public class Commands implements CommandExecutor {
      * General utilities
      * ---------------------------- */
     private void sendUsage(Player player) {
-        player.sendMessage(color("&eTry:"));
+        player.sendMessage(color("&eComandos disponíveis:"));
         player.sendMessage(color("&7/krune give <chalk|activator>"));
         player.sendMessage(color("&7/krune create <rune_name> <block_amount> [commands]"));
+        player.sendMessage(color("&7/krune delete <rune_name>"));
     }
 
     private String replacePlaceholders(String text, String runeName, String command) {

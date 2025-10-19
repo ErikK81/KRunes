@@ -43,6 +43,23 @@ public class DataManager {
         }
     }
 
+    // --- Deletar runa ---
+    public boolean deleteRune(String name) {
+        // Remove da memória
+        RuneData removed = savedRunes.remove(name);
+
+        // Deleta o arquivo físico
+        File file = new File(runesFolder, name + ".yml");
+        boolean deleted = false;
+
+        if (file.exists()) {
+            deleted = file.delete();
+        }
+
+        // Retorna true se a runa foi removida tanto do mapa quanto do disco
+        return removed != null && deleted;
+    }
+
     // --- Remover criação atual ---
     public void removeCurrentCreation(Player player, PlayerCreationData creation) {
         List<PlayerCreationData> creations = playerCreations.get(player.getUniqueId());

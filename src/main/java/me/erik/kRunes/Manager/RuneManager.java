@@ -3,7 +3,6 @@ package me.erik.kRunes.Manager;
 import me.erik.kRunes.KRunes;
 import me.erik.kRunes.PlaceHolders;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -56,6 +55,7 @@ public class RuneManager {
         if (creation.blocks.size() >= creation.requiredBlocks) {
             dataManager.saveRuneFromCreation(player, creation);
             dataManager.removeCurrentCreation(player, creation);
+            effects.clearLines(player); 
             return true;
         }
 

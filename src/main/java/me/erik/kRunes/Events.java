@@ -53,9 +53,7 @@ public class Events implements Listener {
 
         Player player = event.getPlayer();
 
-        // Cooldown de 0.5s
         if (isOnCooldown(player)) {
-            event.setCancelled(true);
             return;
         }
         updateCooldown(player);

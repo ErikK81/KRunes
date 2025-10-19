@@ -30,7 +30,7 @@ public class KRunes extends JavaPlugin {
 
         // Registra eventos
         Bukkit.getPluginManager().registerEvents(new Events(this), this);
-        Objects.requireNonNull(this.getCommand("KRune")).setExecutor(new Commands(this));
+        Objects.requireNonNull(this.getCommand("KRune")).setExecutor(new Commands(this, dataManager));
         getLogger().info("KRunes ativado com sucesso!");
     }
 
