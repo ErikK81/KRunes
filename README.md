@@ -13,7 +13,9 @@ Dynamic Rune System for Minecraft with customizable particles, sounds, and comma
 
 ### Command
 
-* `/Krune` - Gives the player the Rune Chalk.
+* `/Krune give chalk|activator` - Gives the player the Rune Chalk or Activator.
+* `/Krune give create <rune_name> <points> <command>` - Give the creation staff to draw the rune with the points quantity.
+* `/Krune give delete <rune_name>` - Delete the rune.
 
 ---
 
