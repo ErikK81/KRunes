@@ -121,31 +121,6 @@ command:
 
 ---
 
-## Flow Diagrams
-
-### Rune Creation
-
-```mermaid
-flowchart TD
-    A[Player starts rune] --> B[Creation: PlayerCreationData]
-    B --> C[Draw blocks with Staff]
-    C --> D{Blocks >= required?}
-    D -->|Yes| E[Rune saved]
-    D -->|No| C
-```
-
-### Rune Activation
-
-```mermaid
-flowchart TD
-    A[Player uses Activator] --> B[Check current drawing]
-    B --> C{Matches any rune?}
-    C -->|Yes| D[Activate rune: commands, particles, sounds]
-    C -->|No| E[Error: rune incomplete]
-```
-
----
-
 ## Summary
 
 * Modular and extensible system: creation, drawing, activation.
