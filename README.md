@@ -22,8 +22,6 @@ Dynamic Rune System for Minecraft with customizable particles, sounds, and comma
 | Item                 | Name           | Material  | CustomModelData | Description                         |
 | -------------------- | -------------- | --------- | --------------- | ----------------------------------- |
 | creation             | Creation Staff | STICK     | 1001            | Use to draw the rune: `%rune%`      |
-| Maximum 9 blocks     |                |           |                 |                                     |
-| Command: `%command%` |                |           |                 |                                     |
 | chalk                | Rune Chalk     | STICK     | 1002            | Use to draw runes on the ground     |
 | activator            | Rune Activator | BLAZE_ROD | 1003            | Use to activate runes on the ground |
 
