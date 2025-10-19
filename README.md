@@ -113,11 +113,16 @@ command:
 
 ## Placeholders
 
-| Placeholder | Description                             |
-| ----------- | --------------------------------------- |
-| `%rune%`    | Name of the rune being drawn or created |
-| `%command%` | Command associated with the rune        |
-| `%player%`  | Name of the player executing the action |
+| Placeholder    | Description                             |
+| -------------- | --------------------------------------- |
+| `%command%`    | Command associated with the rune        |
+| `%player%`     | Name of the player executing the action |
+| `%RuneStartX%` | Return the X coordinate from Rune Start |
+| `%RuneStartY%` | Return the Y coordinate from Rune Start |
+| `%RuneStartZ%` | Return the Z coordinate from Rune Start |
+| `%RuneEndX%`   | Return the X coordinate from Rune Start |
+| `%RuneEndY%`   | Return the Y coordinate from Rune End   |
+| `%RuneEndZ%`   | Return the Z coordinate from Rune End   |
 
 ---
 
