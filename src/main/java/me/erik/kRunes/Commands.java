@@ -31,15 +31,11 @@ public class Commands implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
-        // Check if the command is sent by a player
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(color(
-                    messages.get("general", "prefix") + messages.get("general", "player_only")
-            ));
+            sender.sendMessage(color(messages.get("general", "prefix") + messages.get("general", "player_only")));
             return true;
         }
 
-        // No arguments → show help
         if (args.length == 0) {
             sendUsage(player);
             return true;
@@ -50,6 +46,7 @@ public class Commands implements CommandExecutor {
             case "give" -> handleGiveCommand(player, args);
             case "create" -> handleCreateCommand(player, args);
             case "delete" -> handleDeleteCommand(player, args);
+            case "edit" -> handleEditCommand(player, args);
             default -> sendUsage(player);
         }
 
@@ -108,7 +105,7 @@ public class Commands implements CommandExecutor {
      * ----------------------------------------- */
     private void handleDeleteCommand(Player player, String[] args) {
         if (args.length < 2) {
-            player.sendMessage(color("&cUso correto: /krune delete <rune_name>"));
+            player.sendMessage(color("&cCorrect usage: /krune delete <rune_name>"));
             return;
         }
 
@@ -116,10 +113,31 @@ public class Commands implements CommandExecutor {
         boolean success = dataManager.deleteRune(runeName);
 
         if (success) {
-            player.sendMessage(color(ChatColor.RED + "Rune '" + runeName + "' deletada com sucesso!"));
+            player.sendMessage(color(ChatColor.RED + "Rune '" + runeName + "' deleted successfully!"));
         } else {
-            player.sendMessage(color(ChatColor.GRAY + "Runa '" + runeName + "' não encontrada ou falha ao deletar."));
+            player.sendMessage(color(ChatColor.GRAY + "Rune '" + runeName + "' not found or failed to delete."));
         }
+    }
+
+    /* -----------------------------------------
+     * Command: /krune edit <name> <new_command>
+     * ----------------------------------------- */
+    private void handleEditCommand(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage(color("&cCorrect usage: /krune edit <rune_name> <new_command>"));
+            return;
+        }
+
+        String runeName = args[1];
+        String newCommand = String.join(" ", List.of(args).subList(2, args.length));
+
+        if (!dataManager.runeExists(runeName)) {
+            player.sendMessage(color("&cRune '" + runeName + "' not found."));
+            return;
+        }
+
+        dataManager.setRuneCommand(runeName, newCommand);
+        player.sendMessage(color("&aCommand for rune '" + runeName + "' updated to: &f" + newCommand));
     }
 
     private void giveCreationStick(Player player, String runeName, String command) {
@@ -150,28 +168,23 @@ public class Commands implements CommandExecutor {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
 
-        // Name
         String name = plugin.getConfig().getString(configPath + ".name");
         if (name != null) {
             name = replacePlaceholders(name, runeName, command);
             meta.setDisplayName(color(name));
         }
 
-        // Lore
         List<String> lore = new ArrayList<>();
         for (String line : plugin.getConfig().getStringList(configPath + ".lore")) {
             lore.add(color(replacePlaceholders(line, runeName, command)));
         }
         meta.setLore(lore);
 
-        // Custom model data
         if (plugin.getConfig().contains(configPath + ".custommodeldata")) {
             meta.setCustomModelData(plugin.getConfig().getInt(configPath + ".custommodeldata"));
         }
 
-        // Persistent tag
         meta.getPersistentDataContainer().set(new NamespacedKey(plugin, keyName), PersistentDataType.INTEGER, 1);
-
         item.setItemMeta(meta);
         player.getInventory().addItem(item);
     }
@@ -180,10 +193,11 @@ public class Commands implements CommandExecutor {
      * General utilities
      * ---------------------------- */
     private void sendUsage(Player player) {
-        player.sendMessage(color("&eComandos disponíveis:"));
+        player.sendMessage(color("&eAvailable commands:"));
         player.sendMessage(color("&7/krune give <chalk|activator>"));
         player.sendMessage(color("&7/krune create <rune_name> <block_amount> [commands]"));
         player.sendMessage(color("&7/krune delete <rune_name>"));
+        player.sendMessage(color("&7/krune edit <rune_name> <new_command>"));
     }
 
     private String replacePlaceholders(String text, String runeName, String command) {

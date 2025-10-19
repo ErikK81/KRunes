@@ -24,7 +24,6 @@ public class DataManager {
     // --- Salvar runa ---
     public void saveRune(String name, RuneData data) {
         savedRunes.put(name, data);
-
         File file = new File(runesFolder, name + ".yml");
         YamlConfiguration yaml = new YamlConfiguration();
 
@@ -45,19 +44,27 @@ public class DataManager {
 
     // --- Deletar runa ---
     public boolean deleteRune(String name) {
-        // Remove da memória
         RuneData removed = savedRunes.remove(name);
 
-        // Deleta o arquivo físico
         File file = new File(runesFolder, name + ".yml");
         boolean deleted = false;
+        if (file.exists()) deleted = file.delete();
 
-        if (file.exists()) {
-            deleted = file.delete();
-        }
-
-        // Retorna true se a runa foi removida tanto do mapa quanto do disco
         return removed != null && deleted;
+    }
+
+    // --- Editar comando de uma runa ---
+    public void setRuneCommand(String runeName, String newCommand) {
+        RuneData data = savedRunes.get(runeName);
+        if (data == null) return;
+
+        data.command = newCommand;
+        saveRune(runeName, data); // Salva alteração no arquivo
+    }
+
+    // --- Verifica existência de runa ---
+    public boolean runeExists(String runeName) {
+        return savedRunes.containsKey(runeName);
     }
 
     // --- Remover criação atual ---
@@ -68,7 +75,9 @@ public class DataManager {
 
     // --- Salvar runa a partir de criação ---
     public void saveRuneFromCreation(Player player, PlayerCreationData creation) {
-        Block origin = creation.blocks.getFirst(); // primeira posição como referência
+        if (creation.blocks.isEmpty()) return;
+
+        Block origin = creation.blocks.get(0);
         List<int[]> relativePositions = new ArrayList<>();
         for (Block b : creation.blocks) {
             relativePositions.add(new int[]{
@@ -85,16 +94,7 @@ public class DataManager {
         player.sendMessage(ChatColor.GRAY + "Command: " + ChatColor.WHITE + creation.command);
     }
 
-    // --- Getters ---
-    public Map<String, RuneData> getSavedRunes() {
-        return savedRunes;
-    }
-
-    public Map<UUID, List<PlayerCreationData>> getPlayerCreations() {
-        return playerCreations;
-    }
-
-    // --- Carregar runas ---
+    // --- Carregar runas do disco ---
     private void loadRunes() {
         if (!runesFolder.exists()) return;
 
@@ -122,6 +122,14 @@ public class DataManager {
         }
     }
 
+    // --- Getters ---
+    public Map<String, RuneData> getSavedRunes() {
+        return savedRunes;
+    }
+
+    public Map<UUID, List<PlayerCreationData>> getPlayerCreations() {
+        return playerCreations;
+    }
 
     // --- Classes internas ---
     public static class RuneData {

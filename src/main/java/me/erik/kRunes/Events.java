@@ -40,7 +40,7 @@ public class Events implements Listener {
     }
 
     private NamespacedKey activatorKey() {
-        return new NamespacedKey(plugin, "activator");
+        return new NamespacedKey(plugin, "kRunes_activator");
     }
 
     private NamespacedKey creationStickKey() {
@@ -101,9 +101,9 @@ public class Events implements Listener {
     }
 
     private void handleActivator(Player player, Location loc, PlayerInteractEvent event) {
-        event.setCancelled(true);
         plugin.getRuneManager().tryActivateRune(player);
         spawnParticle(player, loc, Particle.SMOKE, 10);
+        event.setCancelled(true);
     }
 
     private void handleCreationStick(Player player, ItemStack item, Block block, Location loc, PlayerInteractEvent event) {
