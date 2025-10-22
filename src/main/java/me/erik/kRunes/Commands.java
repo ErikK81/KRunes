@@ -14,6 +14,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Commands implements CommandExecutor {
@@ -47,6 +48,7 @@ public class Commands implements CommandExecutor {
             case "create" -> handleCreateCommand(player, args);
             case "delete" -> handleDeleteCommand(player, args);
             case "edit" -> handleEditCommand(player, args);
+            case "list" -> dataManager.listRunes(player);
             default -> sendUsage(player);
         }
 
@@ -73,11 +75,11 @@ public class Commands implements CommandExecutor {
     }
 
     /* -----------------------------------------
-     * Command: /krune create <name> <blocks> [cmd]
+     * Command: /krune create <name> <blocks> [cmd1; cmd2; ...]
      * ----------------------------------------- */
     private void handleCreateCommand(Player player, String[] args) {
         if (args.length < 3) {
-            player.sendMessage(color("&cCorrect usage: /krune create <rune_name> <block_amount> [command]"));
+            player.sendMessage(color("&cCorrect usage: /krune create <rune_name> <block_amount> [commands separated by ;]"));
             return;
         }
 
@@ -91,13 +93,30 @@ public class Commands implements CommandExecutor {
             return;
         }
 
-        String command = args.length > 3
-                ? String.join(" ", List.of(args).subList(3, args.length))
+        // Join all text after block amount
+        String joinedCommands = args.length > 3
+                ? String.join(" ", Arrays.copyOfRange(args, 3, args.length))
                 : "";
 
-        plugin.getRuneManager().startRuneCreation(player, runeName, runeBlocks, command);
-        plugin.getRuneManager().setRuneCommand(runeName, command);
-        giveCreationStick(player, runeName, command);
+        // Split by ';' to support multiple commands
+        List<String> commands = new ArrayList<>();
+        if (!joinedCommands.isEmpty()) {
+            for (String cmd : joinedCommands.split(";")) {
+                String trimmed = cmd.trim();
+                if (!trimmed.isEmpty()) commands.add(trimmed);
+            }
+        }
+
+        plugin.getRuneManager().startRuneCreation(player, runeName, runeBlocks, commands);
+        plugin.getRuneManager().setRuneCommands(runeName, commands);
+        giveCreationStick(player, runeName, String.join("; ", commands));
+
+        player.sendMessage(color("&aCreation mode started for rune &e" + runeName));
+        if (!commands.isEmpty()) {
+            player.sendMessage(color("&7Commands: &f" + String.join("&7; &f", commands)));
+        } else {
+            player.sendMessage(color("&7No commands defined yet."));
+        }
     }
 
     /* -----------------------------------------
@@ -120,24 +139,31 @@ public class Commands implements CommandExecutor {
     }
 
     /* -----------------------------------------
-     * Command: /krune edit <name> <new_command>
+     * Command: /krune edit <name> <new_cmd1; new_cmd2; ...>
      * ----------------------------------------- */
     private void handleEditCommand(Player player, String[] args) {
         if (args.length < 3) {
-            player.sendMessage(color("&cCorrect usage: /krune edit <rune_name> <new_command>"));
+            player.sendMessage(color("&cCorrect usage: /krune edit <rune_name> <new_commands separated by ;>"));
             return;
         }
 
         String runeName = args[1];
-        String newCommand = String.join(" ", List.of(args).subList(2, args.length));
 
         if (!dataManager.runeExists(runeName)) {
             player.sendMessage(color("&cRune '" + runeName + "' not found."));
             return;
         }
 
-        dataManager.setRuneCommand(runeName, newCommand);
-        player.sendMessage(color("&aCommand for rune '" + runeName + "' updated to: &f" + newCommand));
+        String joinedCommands = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+        List<String> newCommands = new ArrayList<>();
+
+        for (String cmd : joinedCommands.split(";")) {
+            String trimmed = cmd.trim();
+            if (!trimmed.isEmpty()) newCommands.add(trimmed);
+        }
+
+        dataManager.setRuneCommands(runeName, newCommands);
+        player.sendMessage(color("&aCommands for rune '" + runeName + "' updated to: &f" + String.join("&7; &f", newCommands)));
     }
 
     private void giveCreationStick(Player player, String runeName, String command) {
@@ -195,9 +221,10 @@ public class Commands implements CommandExecutor {
     private void sendUsage(Player player) {
         player.sendMessage(color("&eAvailable commands:"));
         player.sendMessage(color("&7/krune give <chalk|activator>"));
-        player.sendMessage(color("&7/krune create <rune_name> <block_amount> [commands]"));
+        player.sendMessage(color("&7/krune create <rune_name> <block_amount> [cmd1; cmd2; ...]"));
         player.sendMessage(color("&7/krune delete <rune_name>"));
-        player.sendMessage(color("&7/krune edit <rune_name> <new_command>"));
+        player.sendMessage(color("&7/krune edit <rune_name> <new_cmd1; new_cmd2; ...>"));
+        player.sendMessage(color("&7/krune list"));
     }
 
     private String replacePlaceholders(String text, String runeName, String command) {

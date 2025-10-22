@@ -33,7 +33,7 @@ public class DataManager {
         }
 
         yaml.set("positions", posStrings);
-        yaml.set("command", data.command);
+        yaml.set("commands", data.commands);
 
         try {
             yaml.save(file);
@@ -54,12 +54,12 @@ public class DataManager {
     }
 
     // --- Editar comando de uma runa ---
-    public void setRuneCommand(String runeName, String newCommand) {
+    public void setRuneCommands(String runeName, List<String> newCommands) {
         RuneData data = savedRunes.get(runeName);
         if (data == null) return;
 
-        data.command = newCommand;
-        saveRune(runeName, data); // Salva alteração no arquivo
+        data.commands = newCommands;
+        saveRune(runeName, data);
     }
 
     // --- Verifica existência de runa ---
@@ -87,11 +87,11 @@ public class DataManager {
             });
         }
 
-        RuneData runeData = new RuneData(relativePositions, creation.command);
-        saveRune(creation.runeName, runeData);
+        RuneData runeData = new RuneData(relativePositions, creation.commands);
+        saveRune(creation.name, runeData);
 
-        player.sendMessage(ChatColor.GREEN + "Rune '" + creation.runeName + "' created!");
-        player.sendMessage(ChatColor.GRAY + "Command: " + ChatColor.WHITE + creation.command);
+        player.sendMessage(ChatColor.GREEN + "Rune '" + creation.name + "' created!");
+        player.sendMessage(ChatColor.GRAY + "Command: " + ChatColor.WHITE + creation.commands);
     }
 
     // --- Carregar runas do disco ---
@@ -116,10 +116,35 @@ public class DataManager {
                 });
             }
 
-            String command = yaml.getString("command", "");
+            List<String> commandList = yaml.getStringList("commands");
+
+            // compatibilidade com versões antigas (que tinham apenas "command")
+            if (commandList.isEmpty() && yaml.contains("command")) {
+                commandList = Collections.singletonList(yaml.getString("command", ""));
+            }
+
             String runeName = file.getName().replace(".yml", "");
-            savedRunes.put(runeName, new RuneData(positions, command));
+            savedRunes.put(runeName, new RuneData(positions, commandList));;
         }
+    }
+
+    // --- Listar runas ---
+    public void listRunes(Player player) {
+        if (savedRunes.isEmpty()) {
+            player.sendMessage(ChatColor.RED + "Não há runas salvas no momento.");
+            return;
+        }
+
+        player.sendMessage(ChatColor.GOLD + "===== Runas Salvas =====");
+
+        for (Map.Entry<String, RuneData> entry : savedRunes.entrySet()) {
+            RuneData data = entry.getValue();
+
+            player.sendMessage(ChatColor.GRAY + " | Comandos: " + ChatColor.GREEN +
+                    (String.join(", ", data.commands.isEmpty() ? Collections.singletonList("Nenhum") : data.commands)));
+            }
+
+        player.sendMessage(ChatColor.GOLD + "======================");
     }
 
     // --- Getters ---
@@ -134,24 +159,24 @@ public class DataManager {
     // --- Classes internas ---
     public static class RuneData {
         public List<int[]> positions;
-        public String command;
+        public List<String> commands;
 
-        public RuneData(List<int[]> positions, String command) {
+        public RuneData(List<int[]> positions, List<String> commands) {
             this.positions = positions;
-            this.command = command;
+            this.commands = commands;
         }
     }
 
     public static class PlayerCreationData {
-        public String runeName;
-        public int requiredBlocks;
-        public String command;
-        public List<Block> blocks = new ArrayList<>();
+        public final String name;
+        public final int requiredBlocks;
+        public final List<Block> blocks = new ArrayList<>();
+        public final List<String> commands;
 
-        public PlayerCreationData(String runeName, int requiredBlocks, String command) {
-            this.runeName = runeName;
+        public PlayerCreationData(String name, int requiredBlocks, List<String> commands) {
+            this.name = name;
             this.requiredBlocks = requiredBlocks;
-            this.command = command;
+            this.commands = commands != null ? commands : new ArrayList<>();
         }
     }
 }

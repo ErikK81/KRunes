@@ -3,11 +3,15 @@ package me.erik.kRunes.Manager;
 import me.erik.kRunes.KRunes;
 import me.erik.kRunes.PlaceHolders;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.command.CommandException;
 import org.bukkit.entity.Player;
 
 import java.util.*;
+
+import static org.bukkit.Bukkit.getLogger;
 
 public class RuneManager {
 
@@ -25,17 +29,21 @@ public class RuneManager {
     /* ==========================================================
      *                      RUNE CREATION
      * ========================================================== */
-    public void startRuneCreation(Player player, String runeName, int blockCount, String command) {
-        var creation = new DataManager.PlayerCreationData(runeName, blockCount, command);
+    public void startRuneCreation(Player player, String runeName, int blockCount, List<String> commands) {
+        var creation = new DataManager.PlayerCreationData(runeName, blockCount, commands);
         dataManager.getPlayerCreations()
                 .computeIfAbsent(player.getUniqueId(), k -> new ArrayList<>())
                 .add(creation);
 
         player.sendMessage(messages.get("general", "prefix") + messages.get("rune", "start"));
         player.sendMessage(PlaceHolders.replace("&bBlocks required: &e" + blockCount, player, null, null));
-        player.sendMessage(PlaceHolders.replace("&7Command: &f" + (command.isEmpty() ? "None" : command), player, null, null));
-    }
 
+        if (commands != null && !commands.isEmpty()) {
+            player.sendMessage(PlaceHolders.replace("&7Commands: &f" + String.join("; ", commands), player, null, null));
+        } else {
+            player.sendMessage(PlaceHolders.replace("&7Commands: &fNone", player, null, null));
+        }
+    }
     public boolean addCreationBlock(Player player, Block block) {
         var creation = getCurrentCreation(player);
         if (creation == null) return false;
@@ -118,20 +126,33 @@ public class RuneManager {
         // Run all matching runes
         for (String runeName : matchedRunes) {
             DataManager.RuneData data = dataManager.getSavedRunes().get(runeName);
+            if (data == null) continue;
+
             Location start = drawnBlocks.getFirst().getLocation();
             Location end = drawnBlocks.getLast().getLocation();
 
             player.sendMessage(messages.get("general", "prefix") + messages.get("rune", "success"));
 
-            if (data.command != null && !data.command.isEmpty()) {
+            if (data.commands != null && !data.commands.isEmpty()) {
                 effects.spawnParticle("activate", end);
                 effects.playSound(player, "activate", end);
 
-                String parsedCommand = PlaceHolders.replace(data.command, player, start, end);
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsedCommand);
+                // Executar todos os comandos configurados
+                for (String command : data.commands) {
+                    if (command == null || command.trim().isEmpty()) continue;
+
+                    String parsedCommand = PlaceHolders.replace(command, player, start, end);
+                    try {
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsedCommand);
+                    } catch (CommandException c) {
+                        getLogger().info("[KRunes] Invalid command in rune '" + runeName + "': " + command);
+                        player.sendMessage(ChatColor.RED + "[KRunes] Error executing a command. Check console logs!");
+                    }
+                }
             }
         }
     }
+
 
     private List<String> findMatchingRunes(List<Block> drawnBlocks) {
         List<String> matches = new ArrayList<>();
@@ -165,11 +186,11 @@ public class RuneManager {
     /* ==========================================================
      *                      RUNE COMMANDS
      * ========================================================== */
-    public void setRuneCommand(String runeName, String command) {
+    public void setRuneCommands(String runeName, List<String> command) {
         var rune = dataManager.getSavedRunes().get(runeName);
         if (rune == null) return;
 
-        rune.command = command;
+        rune.commands = command;
         dataManager.saveRune(runeName, rune);
     }
 
